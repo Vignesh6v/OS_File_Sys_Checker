@@ -1,5 +1,5 @@
 # OS_File_Sys_Checker
-As Part of Operating System Coursework. Designing a File System Checker. 
+I havn't finished this. As Part of Operating System Coursework, I'm doing it now.  
 
 
 As with any filesystem, there exists the possibility that errors will be introduced.  In Linux, these errors are resolved using a File System ChecKer (fsck).  Each fsck is custom designed for the file system type so that it can examine everything to make sure it is consistent.  The file system will never be mounted during an fsck operation, so don’t worry about it being changed outside of any changes you may make.

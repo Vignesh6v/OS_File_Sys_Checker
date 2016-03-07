@@ -67,8 +67,8 @@ def get_freeblock_list():
                 notfullblocks.append(i)
             for k in new_list:
                 freeblock_list.append(k)
-        except:
-            print ('Unable to Open the File')
+        except(e):
+            print ('Unable to Open the File coz {}'.format(e))
     print ('Length of freeblocks list: {}'.format(len(freeblock_list)))
 
 def get_usedblock_list():
@@ -111,46 +111,49 @@ def validate_freeblock_list(f,u):
             
 def check_Time(l):
     for i in l:
-        f = open(default_path+str(i), 'r')
-        flag = True
-        item = f.read()
-        f.close()
-        atime_stp = item.find('"atime":')
-        atime_edp = item.find (',',atime_stp)
-        print (item[atime_stp:atime_edp])
-        atime_value = item[atime_stp+8:atime_edp]
-        print (atime_value)
-        if int(atime_value) < int(time()):
-            atime_value = int(time())
-            flag = False
+        try:
+            f = open(default_path+str(i), 'r')
+            flag = True
+            item = f.read()
+            f.close()
+            atime_stp = item.find('"atime":')
+            atime_edp = item.find (',',atime_stp)
+            print(item[atime_stp+8:atime_edp])
+            atime_value = item[atime_stp+8:atime_edp]
+            if int(atime_value) < int(time()):
+                atime_value = int(time())
+                flag = False
 
-        ctime_stp = item.find('"ctime":')
-        ctime_edp = item.find (',',ctime_stp)
-        ctime_value = item[ctime_stp+8:ctime_edp]
-        if int(ctime_value) < int(time()):
-            ctime_value = int(time())
-            flag = False
+            ctime_stp = item.find('"ctime":')
+            ctime_edp = item.find (',',ctime_stp)
+            ctime_value = item[ctime_stp+8:ctime_edp]
+            if int(ctime_value) < int(time()):
+                ctime_value = int(time())
+                flag = False
 
-        mtime_stp = item.find('"mtime":')
-        mtime_edp = item.find (',',mtime_stp)
-        mtime_value = item[mtime_stp+8:mtime_edp]
-        if int(mtime_value) < int(time()):
-            mtime_value = int(time())
-            flag = False
-        
-        if flag == False:
-            f = open(default_path+str(i), 'w+')
-            print ('Updating the Time for Block Num: {}'.format(i))
-            chngd_item = item[:atime_stp+8]+str(atime_value)+item[atime_edp:ctime_stp+8]+str(ctime_value)+item[ctime_edp:mtime_stp+8]+str(mtime_value)+item[mtime_edp:]
-            f.write(chngd_item)
+            mtime_stp = item.find('"mtime":')
+            mtime_edp = item.find (',',mtime_stp)
+            mtime_value = item[mtime_stp+8:mtime_edp]
+            if int(mtime_value) < int(time()):
+                mtime_value = int(time())
+                flag = False
+            
+            if flag == False:
+                f = open(default_path+str(i), 'w+')
+                print ('Updating the Time for Block Num: {}'.format(i))
+                chngd_item = item[:atime_stp+8]+str(atime_value)+item[atime_edp:ctime_stp+8]+str(ctime_value)+item[ctime_edp:mtime_stp+8]+str(mtime_value)+item[mtime_edp:]
+                f.write(chngd_item)
+        except(e):
+            print ('Unable to open the file coz{}'.format(e))
+
  
 def main():
     print ('Started')
-#    check_DevId(superblock_path)
-#    get_freeblock_list()
-#    get_usedblock_list()
- #   validate_freeblock_list(freeblock_list, usedblock_list)
-    check_Time([27])
+    check_DevId(superblock_path)
+    get_freeblock_list()
+    get_usedblock_list()
+    validate_freeblock_list(freeblock_list, usedblock_list)
+    check_Time([26])
 
 
 if __name__ == '__main__':main()

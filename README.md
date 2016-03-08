@@ -14,7 +14,7 @@ Design a file system checker for our file system. call it csefsck. It will have 
 4.	Each directory contains . and .. and their block numbers are correct
 5.	If indirect is 1, that the data in the block pointed to by location pointer is an array
 6.	That the size is valid for the number of block pointers in the location array. The three possibilities are:
-    1.	size<blocksize  should have indirect=0 and size>0
+    1.	size < blocksize should have indirect=0 and size>0
     2.	if indirect!=0, size should be less than (blocksize*length of location array)
     3.	if indirect!=0, size should be greater than (blocksize*length of location array-1)
     

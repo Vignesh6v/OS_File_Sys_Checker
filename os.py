@@ -209,19 +209,30 @@ def validate_freeblock_list(f,u):
     if len(notlisted_block):
         print('3. i) Error!, The free block list does not contains ALL of the free blocks')
         print ('The blocks that are not listed are: {}'. format(notlisted_block))
-        '''if len(notfullblocks):
-            file = open(default_path + str(notfullblocks.pop(0)),  'r' )
+        if len(notfullblocks):
+            temp_filenum = str(notfullblocks.pop(0))
+            file = open(default_path + temp_filenum,  'r' )
             items = file.read()
+            file.close()
             block_list = items.split(',')
             new_list = [j.strip('[') for j in block_list]
             new_list = [j.strip(']') for j in new_list]
             if len(new_list) + len(notlisted_block) <= 400:
+                v = items[:-1]
+                val = ''
+                counter = 0
                 for i in notlisted_block:
-                    new_list.append(str(i))
-                #file.write(value)
-                file.close()
+                    val +=','+str(i)
+                    counter+=1
+                    freeblock_list.append(i)
+                result = v+val+']'
+                print ('After update, the length of Free Block List is: {}'.format(len(freeblock_list)))
+                write_file = open(default_path + temp_filenum,  'w' )
+                print ('check on file {}'.format(temp_filenum))
+                write_file.write(result)
+                write_file.close()
             else:
-                print ('unable to append the free list in single block') '''              
+                print ('unable to append the free list in single block')              
     else:
         print('3. i) The free block list contains ALL of the free blocks')
     flag = False    

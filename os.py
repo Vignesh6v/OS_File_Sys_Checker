@@ -1,23 +1,25 @@
+#using python 3.5 verison
 
+import os
 from time import time
 
-freestart, freeend,ROOT_BLOCK, MAX_BLOCK_NUM  = 0,0,0,0
+#global variables
+freestart, freeend,root_block, max_block  = 0,0,0,0
 DevId = 20
 blocksize = 4096
-rootstr_blck = str(ROOT_BLOCK)
+rootstr_blck = str(root_block)
 root_path = 'FS/fusedata.' + rootstr_blck
 default_path = 'FS/fusedata.'
-superblock_path = 'FS/fusedata.0'
+entry_path = 'FS/fusedata.0'
 usedblock_list = []
-file_data_block_list = []
 new_list, block_list = [], []
 freeblock_list, notfullblocks = [], []
-free_temp_list = []
+
 
 
 # Check whether DevID is right
 def check_DevId(file):
-    global freestart, freeend,ROOT_BLOCK, MAX_BLOCK_NUM,usedblock_list
+    global freestart, freeend,root_block, max_block,usedblock_list
     try:
         f = open(file,'r')
         items = f.read()
@@ -44,18 +46,20 @@ def check_DevId(file):
             root_stp = items.find('"root":')
             root_edp = items.find(',',root_stp)
             root_value = items [root_stp+7:root_edp]
-            ROOT_BLOCK = int(root_value)
+            root_block = int(root_value)
             print ('Root Block Num: {}'.format(root_value))
             maxb_stp = items.find('"maxBlocks":')
             maxb_edp = items.find(',',maxb_stp)
             maxb_value = items [maxb_stp+12:maxb_edp]
-            MAX_BLOCK_NUM = int(maxb_value)
+            max_block = int(maxb_value)
             print ('Max Block Num: {}'.format(maxb_value))
-            usedblock_list = list(range(0,ROOT_BLOCK))
+            usedblock_list = list(range(0,root_block))
             print(' ')
     except:
         print ('Unable to Open the File')
 
+
+#to get the free list of blocks
 def get_freeblock_list(usedblock_list):
     global freeblock_list
     for i in range(freestart, freeend+1):
@@ -71,16 +75,20 @@ def get_freeblock_list(usedblock_list):
             for k in new_list:
                 c = int(k)
                 if c not in usedblock_list:
-                    freeblock_list.append(k)
+                    freeblock_list.append(int(k))
         except(e):
             print ('Unable to Open the File coz {}'.format(e))
     print ('Length of freeblocks list: {}'.format(len(freeblock_list)))
 
+
+#to get the used list of blocks
 def get_usedblock_list(block):
         f = open(default_path+str(block), 'r')
         item= f.read()
         f.close()
         counter = 0
+        fcount = 0
+        #traverse through the directories
         while True:
             tp = int(item.find('type":"d"', counter))
             stp = item.find('location":',tp)
@@ -93,7 +101,20 @@ def get_usedblock_list(block):
                 counter = (tp+1)
             else:
                 break
+        #traverse through the files
+        while True:
+            tp = int(item.find('type":"f"', fcount))
+            stp = item.find('location":',tp)
+            edp = item.find('}',stp)
+            location = item[stp+10:edp]
+            if tp > 0:
+                get_file( location, block)
+                fcount = (tp+1)
+            else:
+                break
 
+            
+#directory informations
 def get_directory(block, name, pwd):
     #present working directory
     if name == '.':
@@ -107,7 +128,7 @@ def get_directory(block, name, pwd):
         f = open(default_path+str(block), 'r')
         content = f.read()
         f.close()
-        if pwd == ROOT_BLOCK:
+        if pwd == root_block:
             val = content.find('name":"..","location":'+str(pwd))
         else:
             val = content.find('"location":'+str(pwd))
@@ -118,14 +139,69 @@ def get_directory(block, name, pwd):
     #other directories
     else:
         get_usedblock_list(block)
-        
-    
-        
+
+
+#file informations
+def get_file(block, pwd):
+    if (block not in usedblock_list):
+        usedblock_list.append(int(block))
+    f = open(default_path+str(block), 'r')
+    item = f.read()
+    f.close()
+    indirect_stp = item.find('indirect":')
+    indirect_etp = item.find(',',indirect_stp)
+    indirect_loc = int(item[indirect_stp+10: indirect_etp])
+    loc_stp = item.find('location":')
+    loc_etp= item.find(',',loc_stp)
+    loc = int(item[loc_stp+10:loc_etp])
+    usedblock_list.append(loc)
+    if indirect_loc != 0:
+        if indirect_loc == 1:
+            #location pointer points to an array?
+            f = open(default_path+str(loc), 'r')
+            item = f.read()
+            f.close()
+            block_list = item.split(',')
+            new_list = [j.strip('[') for j in block_list]
+            new_list = [j.strip(']') for j in new_list]
+            len_of_array = len(new_list)
+            print (' ')
+            print ('Qns 5')
+            try:
+                for i in new_list:
+                    f = int(i)
+                print ('the data in the block {} pointed to, by location pointer is an array'.format(block))
+                usedblock_list.append(int(i))
+            except:
+                print ('Not a valid array in the location {}'.format(block))
+                print (' ')
+        size_of_file = 0
+        for i in new_list:
+            size_of_file += os.path.getsize(default_path+new_list.pop(0))
+
+        #indirection check
+        if size_of_file < (400*len_of_array) or size_of_file > (400*(len_of_array-1)):
+            if size_of_file < 400:
+                print ('Error! Could be stored in single block with indirect = 0 as the size of file is {} '.format(size_of_file))
+            else:
+                print ('File having Indirect = 1 correct and size is Valid')
+        else:
+            print ('Error! We are dealing with only One Indirection')
+    else:
+        usedblock_list.append(loc)
+        size_of_file = os.path.getsize(default_path+str(loc))
+        if size_of_file > 0 and size_of_file < 400:
+            print ('Size is valid for file at {} Block'.format(pwd))
+        else:
+            print ('Error! Invalid size of file. beyond the capacity of a block.')
+
+
+#validating the free block list
 def validate_freeblock_list(f,u):
     print ('Qns 3')
     value = ''
     notlisted_block = []
-    totalblock_list = [str(i) for i in range(ROOT_BLOCK, MAX_BLOCK_NUM)]
+    totalblock_list = [int(i) for i in range(root_block, max_block)]
     freeblocks_list = list(set(totalblock_list).difference(u))
     for i in freeblocks_list:
         if i not in f:
@@ -133,7 +209,7 @@ def validate_freeblock_list(f,u):
     if len(notlisted_block):
         print('3. i) Error!, The free block list does not contains ALL of the free blocks')
         print ('The blocks that are not listed are: {}'. format(notlisted_block))
-        if len(notfullblocks):
+        '''if len(notfullblocks):
             file = open(default_path + str(notfullblocks.pop(0)),  'r' )
             items = file.read()
             block_list = items.split(',')
@@ -141,11 +217,11 @@ def validate_freeblock_list(f,u):
             new_list = [j.strip(']') for j in new_list]
             if len(new_list) + len(notlisted_block) <= 400:
                 for i in notlisted_block:
-                    new_list.append(i)
+                    new_list.append(str(i))
                 #file.write(value)
                 file.close()
             else:
-                print ('unable to append the free list in single block')               
+                print ('unable to append the free list in single block') '''              
     else:
         print('3. i) The free block list contains ALL of the free blocks')
     flag = False    
@@ -155,7 +231,10 @@ def validate_freeblock_list(f,u):
             flag = True
     if flag == False:
         print('3. ii) All used block are not available in the Free list Blocks')
-            
+
+
+
+# Time check only in the used blocks and will skip the blocks that don't have time fields            
 def check_Time(l):
     for i in l:
         try:
@@ -163,42 +242,46 @@ def check_Time(l):
             flag = True
             item = f.read()
             f.close()
-            atime_stp = item.find('"atime":')
-            atime_edp = item.find (',',atime_stp)
-            atime_value = item[atime_stp+8:atime_edp]
-            if int(atime_value) < int(time()):
-                atime_value = int(time())
-                flag = False
+            if (item.find('"atime":') != -1 or item.find('"ctime":') != -1 or item.find('"mtime":') != -1):
+                atime_stp = item.find('"atime":')
+                atime_edp = item.find (',',atime_stp)
+                atime_value = item[atime_stp+8:atime_edp]
+                if int(atime_value) < int(time()):
+                    atime_value = int(time())
+                    flag = False
 
-            ctime_stp = item.find('"ctime":')
-            ctime_edp = item.find (',',ctime_stp)
-            ctime_value = item[ctime_stp+8:ctime_edp]
-            if int(ctime_value) < int(time()):
-                ctime_value = int(time())
-                flag = False
+                ctime_stp = item.find('"ctime":')
+                ctime_edp = item.find (',',ctime_stp)
+                ctime_value = item[ctime_stp+8:ctime_edp]
+                if int(ctime_value) < int(time()):
+                    ctime_value = int(time())
+                    flag = False
 
-            mtime_stp = item.find('"mtime":')
-            mtime_edp = item.find (',',mtime_stp)
-            mtime_value = item[mtime_stp+8:mtime_edp]
-            if int(mtime_value) < int(time()):
-                mtime_value = int(time())
-                flag = False
-            
-            if flag == False:
-                print ('Qns 2')
-                f = open(default_path+str(i), 'w+')
-                print ('Updating the Time for Block Num: {}'.format(i))
-                chngd_item = item[:atime_stp+8]+str(atime_value)+item[atime_edp:ctime_stp+8]+str(ctime_value)+item[ctime_edp:mtime_stp+8]+str(mtime_value)+item[mtime_edp:]
-                f.write(chngd_item)
+                mtime_stp = item.find('"mtime":')
+                mtime_edp = item.find (',',mtime_stp)
+                mtime_value = item[mtime_stp+8:mtime_edp]
+                if int(mtime_value) < int(time()):
+                    mtime_value = int(time())
+                    flag = False
+                
+                if flag == False:
+                    f = open(default_path+str(i), 'w+')
+                    print ('Updating the Time for Block Num: {}'.format(i))
+                    chngd_item = item[:atime_stp+8]+str(atime_value)+item[atime_edp:ctime_stp+8]+str(ctime_value)+item[ctime_edp:mtime_stp+8]+str(mtime_value)+item[mtime_edp:]
+                    f.write(chngd_item)
+            else:
+                pass
         except(e):
             print ('2. Unable to open the file coz{}'.format(e))
 
- 
+
+#main function call 
 def main():
     print ('Started')
-    check_DevId(superblock_path)
+    print (' ')
+    check_DevId(entry_path)
     print ('Qns 4')
-    get_usedblock_list(ROOT_BLOCK)
+    get_usedblock_list(root_block)
     print (' ')
     print ('Used Block List')
     print (usedblock_list)
@@ -208,9 +291,10 @@ def main():
     print (' ')
     validate_freeblock_list(freeblock_list, usedblock_list)
     print (' ')
-    check_Time([26])
+    print ('Qns 2')
+    check_Time(usedblock_list)
     print (' ')
-    print ('done')
+    print ('Done!')
 
 
 

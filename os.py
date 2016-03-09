@@ -58,29 +58,6 @@ def check_DevId(file):
     except:
         print ('Unable to Open the File')
 
-
-#to get the free list of blocks
-def get_freeblock_list(usedblock_list):
-    global freeblock_list
-    for i in range(freestart, freeend+1):
-        try: 
-            f = open(default_path+str(i), 'r')
-            items = f.read()
-            f.close()
-            block_list = items.split(',')
-            new_list = [j.strip('[') for j in block_list]
-            new_list = [j.strip(']') for j in new_list]
-            if len(new_list) < 400:
-                notfullblocks.append(i)
-            for k in new_list:
-                c = int(k)
-                if c not in usedblock_list:
-                    freeblock_list.append(int(k))
-        except(e):
-            print ('Unable to Open the File coz {}'.format(e))
-    print ('Length of freeblocks list: {}'.format(len(freeblock_list)))
-
-
 #to get the used list of blocks
 def get_usedblock_list(block):
         f = open(default_path+str(block), 'r')
@@ -194,6 +171,29 @@ def get_file(block, pwd):
             print ('Size is valid for file at {} Block'.format(pwd))
         else:
             print ('Error! Invalid size of file. beyond the capacity of a block.')
+
+
+#to get the free list of blocks
+def get_freeblock_list(usedblock_list):
+    global freeblock_list
+    for i in range(freestart, freeend+1):
+        try: 
+            f = open(default_path+str(i), 'r')
+            items = f.read()
+            f.close()
+            block_list = items.split(',')
+            new_list = [j.strip('[') for j in block_list]
+            new_list = [j.strip(']') for j in new_list]
+            if len(new_list) < 400:
+                notfullblocks.append(i)
+            for k in new_list:
+                c = int(k)
+                if c not in usedblock_list:
+                    freeblock_list.append(int(k))
+        except(e):
+            print ('Unable to Open the File coz {}'.format(e))
+    print ('Length of freeblocks list: {}'.format(len(freeblock_list)))
+
 
 
 #validating the free block list

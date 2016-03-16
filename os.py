@@ -3,7 +3,7 @@
 import os
 from time import time
 
-#global variables
+#variables
 freestart, freeend,root_block, max_block  = 0,0,0,0
 DevId = 20
 blocksize = 4096
